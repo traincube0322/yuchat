@@ -4,6 +4,7 @@ void * handle_clnt(void *arg);
 void send_msg(msg_t *msg, int cur_sock);
 int	read_msg(int clnt_sock, msg_t *msg);
 void delete_clnt(int clnt_sock);
+void	print_msg(int sock, msg_t *msg);
 
 int clnt_cnt = 0;
 int clnt_socks[MAX_CLNT];
@@ -53,7 +54,7 @@ int main(int argc, char *argv[])
 
 void *handle_clnt(void *arg)
 {
-	int 	clnt_sock = *((int*)arg);
+	int 	clnt_sock = *((int* )arg);
 	msg_t	*msg;
 
 	msg = (msg_t *)malloc(sizeof(msg));
@@ -82,18 +83,19 @@ void send_msg(msg_t *msg, int cur_sock)
 	pthread_mutex_lock(&mutx);
 	if (msg->type == BROADCAST)
 	{
-		write(1, msg->content, msg->len);
+		//write(1, msg->content, msg->len);
 		for (i = 0; i < clnt_cnt; i++)
 		{
 			if (clnt_socks[i] == cur_sock)
 				continue;
-			write(clnt_socks[i], msg->sender, strlen(msg->sender));
-			write(clnt_socks[i], msg->content, msg->len);
+			write(clnt_socks[i], msg, sizeof(msg_t));
+			printf("send to %d\n", clnt_socks[i]);
 		}
+		print_msg(1, msg);
 	}
 	if (msg->type == UNICAST)
 	{
-
+		printf("UNICAST is unsported yet... sorry\n");
 	}
 	pthread_mutex_unlock(&mutx);
 }
@@ -121,7 +123,6 @@ void delete_clnt(int clnt_sock)
 	}
 	clnt_cnt--;
 }
-
 
 void	print_msg(int sock, msg_t *msg)
 {

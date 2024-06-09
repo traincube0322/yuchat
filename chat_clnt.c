@@ -88,15 +88,16 @@ void *send_msg(void *arg)   // send thread main
 
 void *recv_msg(void *arg)			// read thread main
 {
-	int sock = *((int*)arg);
-	char name_msg[NAME_SIZE + BUF_SIZE];
-	int str_len;
+	int sock = *((int *)arg);
+	int rd;
 	msg_t *msg;
 
 	while (1)
 	{
-		if (read(sock, msg, sizeof(msg_t)) == -1)
+		rd = read(sock, msg, sizeof(msg_t));
+		if (rd == -1)
 			return (void *)-1;
+		printf("READ MSG!\n");
 		print_msg(1, msg);
 	}
 	return NULL;
