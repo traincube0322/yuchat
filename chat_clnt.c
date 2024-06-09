@@ -2,6 +2,8 @@
 
 void	*send_msg(void *arg);
 void	*recv_msg(void *arg);
+void	make_msg(char *input, msg_t *msg);
+void	remove_newline(char *dest, const char *src);
 
 char name[NAME_SIZE] = "[DEFAULT]";
 
@@ -44,17 +46,14 @@ int main(int argc, char *argv[])
 void *send_msg(void *arg)   // send thread main
 {
 	msg_t 	*msg;
-	time_t	cur_time;
 	int sock = *((int *)arg);
-	char name_msg[NAME_SIZE + BUF_SIZE];
 	char input[NAME_SIZE + BUF_SIZE + 2];
 
 	msg = (msg_t *)malloc(sizeof(msg_t));
 	if (msg == NULL)
 		error_handling("malloc error");
 	memset(msg, 0, sizeof(msg_t));
-
-	strcpy(msg->sender, name);
+	
 	while(1)
 	{
 		fgets(input, BUF_SIZE, stdin);
@@ -64,43 +63,73 @@ void *send_msg(void *arg)   // send thread main
 			close(sock);
 			exit(0);
 		}
-		if (input[0] == '@')
-		{
-			msg->type = UNICAST;
-			
-		}
-		else
-		{
-			msg->type = BROADCAST;
-			strcpy(msg->content, input);
-			msg->len = strlen(input);
-			write(1, msg->content, strlen(msg->content));
-		}
-		cur_time = time(NULL);
-		strftime(msg->timestamp, sizeof(msg->timestamp), "%H:%M", localtime(&cur_time));
+		make_msg(input, msg);
 		write(sock, msg, sizeof(msg_t));
-		printf("example print msg\n");
-		print_msg(1, msg);
 	}
 	free(msg);
 	return NULL;
 }
 
-void *recv_msg(void *arg)			// read thread main
+void	*recv_msg(void *arg)			// read thread main
 {
 	int sock = *((int *)arg);
 	int rd;
-	msg_t *msg;
+	char buffer[BUF_SIZE];
 
 	while (1)
 	{
-		rd = read(sock, msg, sizeof(msg_t));
+		rd = read(sock, buffer, BUF_SIZE);
 		if (rd == -1)
 			return (void *)-1;
 		printf("READ MSG!\n");
-		print_msg(1, msg);
+		printf("%s\n", buffer);
 	}
 	return NULL;
 }
 
-// rcv format : [sender] very long msg [HH:MM]
+void	make_msg(char *input, msg_t *msg)
+{
+	time_t cur_time;
+	char reciever[NAME_SIZE];
+	char content[BUF_SIZE];
+	char timestamp[TIME_SIZE];
+
+	msg->type = BROADCAST;
+	if (input[0] == '@')
+	{
+		msg->type = UNICAST;
+		input++;
+		char *space = strchr(input, ' ');
+		if (space != NULL)
+		{
+			int name_len = space - input;
+			if (name_len < NAME_SIZE)
+			{
+				strncpy(msg->receiver, input, name_len);
+				msg->receiver[name_len] = '\0';
+			}
+			else
+			{
+				printf("ERROR : Name is too long\n");
+				return;
+			}
+			input += name_len;
+		}
+	}
+	remove_newline(content, input);
+
+	cur_time = time(NULL);
+	strftime(timestamp, sizeof(timestamp), "%H:%M", localtime(&cur_time));
+	sprintf(msg->message, "[%s] %s [%s]", name, content, timestamp);
+	msg->len = strlen(msg->message);
+}
+
+void	remove_newline(char *dest, const char *src)
+{
+	int len = 0;
+
+	while (src[len] != '\0' && src[len] != '\n')
+		len++;
+	strncpy(dest, src, len);
+	dest[len] = '\0';
+}

@@ -26,26 +26,20 @@
 #define CYAN	"\033[36m"
 #define WHITE	"\033[37m"
 
+#define BUF_SIZE	512
 #define NAME_SIZE	20
-#define BUF_SIZE	128
+#define MSG_SIZE	256
 #define TIME_SIZE	6
 
 #define BROADCAST	0
 #define UNICAST 	1
 
-typedef struct sock_s
-{
-
-};
-
 typedef struct msg_s
 {
 	int		type;
-	size_t	len;
-	char	sender[NAME_SIZE];
+	int		len;
 	char	receiver[NAME_SIZE];
-	char	timestamp[6];
-	char	content[BUF_SIZE];
+	char	message[NAME_SIZE + MSG_SIZE + TIME_SIZE + 7];
 }	msg_t;
 
 // functions

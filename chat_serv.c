@@ -4,7 +4,6 @@ void * handle_clnt(void *arg);
 void send_msg(msg_t *msg, int cur_sock);
 int	read_msg(int clnt_sock, msg_t *msg);
 void delete_clnt(int clnt_sock);
-void	print_msg(int sock, msg_t *msg);
 
 int clnt_cnt = 0;
 int clnt_socks[MAX_CLNT];
@@ -62,10 +61,7 @@ void *handle_clnt(void *arg)
 		error_handling("malloc error");
 
 	while (read_msg(clnt_sock, msg) != -1)
-	{
-		printf("msg from %dsock\n", clnt_sock);
 		send_msg(msg, clnt_sock);
-	}
 	
 	pthread_mutex_lock(&mutx);
 	delete_clnt(clnt_sock);
@@ -83,15 +79,12 @@ void send_msg(msg_t *msg, int cur_sock)
 	pthread_mutex_lock(&mutx);
 	if (msg->type == BROADCAST)
 	{
-		//write(1, msg->content, msg->len);
 		for (i = 0; i < clnt_cnt; i++)
 		{
 			if (clnt_socks[i] == cur_sock)
 				continue;
-			write(clnt_socks[i], msg, sizeof(msg_t));
-			printf("send to %d\n", clnt_socks[i]);
+			write(clnt_socks[i], msg->message, sizeof(msg->message));
 		}
-		print_msg(1, msg);
 	}
 	if (msg->type == UNICAST)
 	{
@@ -122,22 +115,4 @@ void delete_clnt(int clnt_sock)
 		}
 	}
 	clnt_cnt--;
-}
-
-void	print_msg(int sock, msg_t *msg)
-{
-	char name[NAME_SIZE + 3];
-	char time_stamp[TIME_SIZE + 3];
-
-	if (msg->type == UNICAST)
-		write(sock, MAGENTA, strlen(MAGENTA));
-
-	sprintf(name, "[%s] ", msg->sender);
-	sprintf(time_stamp, " [%s]", msg->timestamp);
-
-	write(sock, name, strlen(name));
-	write(sock, msg->content, msg->len);
-	write(sock, time_stamp, strlen(time_stamp));
-	write(sock, "\n", 1);
-	write(sock, RESET, strlen(RESET));
 }
