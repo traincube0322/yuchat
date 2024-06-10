@@ -5,8 +5,7 @@ void send_msg(msg_t *msg, int cur_sock);
 int	read_msg(int clnt_sock, msg_t *msg);
 void delete_clnt(int clnt_sock);
 
-int clnt_cnt = 0;
-int clnt_socks[MAX_CLNT];
+clnt_socks_t *clnt_head;
 pthread_mutex_t mutx;
 
 int main(int argc, char *argv[])
@@ -38,10 +37,6 @@ int main(int argc, char *argv[])
 	{
 		clnt_adr_sz = sizeof(clnt_adr);
 		clnt_sock = accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_sz);
-		
-		pthread_mutex_lock(&mutx);
-		clnt_socks[clnt_cnt++] = clnt_sock;
-		pthread_mutex_unlock(&mutx);
 	
 		pthread_create(&t_id, NULL, handle_clnt, (void *)&clnt_sock);
 		pthread_detach(t_id);
@@ -53,18 +48,31 @@ int main(int argc, char *argv[])
 
 void *handle_clnt(void *arg)
 {
-	int 	clnt_sock = *((int* )arg);
+	int 	clnt_sock = *((int *)arg);
+	char	clnt_name[NAME_SIZE];
+	int 	name_len;
 	msg_t	*msg;
+
+	if ((name_len = read(clnt_sock, clnt_name, NAME_SIZE)) == -1)
+	{
+		perror("read error!\n");
+		return (void *)-1;
+	}
+	printf("Hello, [%s]\n", clnt_name);
+
+	pthread_mutex_lock(&mutx);
+	append_node(&clnt_head, clnt_sock, clnt_name);
+	pthread_mutex_unlock(&mutx);
 
 	msg = (msg_t *)malloc(sizeof(msg));
 	if (msg == NULL)
 		error_handling("malloc error");
 
-	while (read_msg(clnt_sock, msg) != -1)
+	while (read_msg(clnt_sock, msg) != 0)
 		send_msg(msg, clnt_sock);
-	
+
 	pthread_mutex_lock(&mutx);
-	delete_clnt(clnt_sock);
+	delete_node(&clnt_head, clnt_sock);
 	pthread_mutex_unlock(&mutx);
 
 	free(msg);
@@ -79,40 +87,33 @@ void send_msg(msg_t *msg, int cur_sock)
 	pthread_mutex_lock(&mutx);
 	if (msg->type == BROADCAST)
 	{
-		for (i = 0; i < clnt_cnt; i++)
+		for (clnt_socks_t *ptr = clnt_head; ptr != NULL; ptr = ptr->next)
 		{
-			if (clnt_socks[i] == cur_sock)
+			if (ptr->sock == cur_sock)
 				continue;
-			write(clnt_socks[i], msg->message, sizeof(msg->message));
+			write(ptr->sock, msg->message, msg->len);
 		}
 	}
 	if (msg->type == UNICAST)
 	{
-		printf("UNICAST is unsported yet... sorry\n");
+		clnt_socks_t *ptr = find_sock(clnt_head, msg->receiver);
+		if (ptr == NULL)
+			write(cur_sock, "[System] Can't find the name\n", 30);
+		else
+		{
+			write(ptr->sock, MAGENTA, strlen(MAGENTA));
+			write(ptr->sock, msg->message, msg->len);
+			write(ptr->sock, RESET, strlen(RESET));
+		}
 	}
 	pthread_mutex_unlock(&mutx);
 }
 
 int	read_msg(int clnt_sock, msg_t *msg)
 {
+	int rd;
 	memset(msg, 0, sizeof(msg_t));
-	read(clnt_sock, msg, sizeof(msg_t));
-	return 0;
+	rd = read(clnt_sock, msg, sizeof(msg_t));
+	return rd;
 }
 
-void delete_clnt(int clnt_sock)
-{
-	for (int i = 0; i < clnt_cnt; i++)   // remove disconnected client
-	{
-		if (clnt_sock == clnt_socks[i])
-		{
-			while(i < clnt_cnt - 1)
-			{
-				clnt_socks[i] = clnt_socks[i + 1];
-				i++;
-			}
-			break;
-		}
-	}
-	clnt_cnt--;
-}

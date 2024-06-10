@@ -10,6 +10,4 @@
 
 #include "yuchat.h"
 
-void	print_msg(int sock, msg_t *msg);
-
 #endif

@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 	if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
 		error_handling("connect() error");
 
+	write(sock, name, NAME_SIZE);
 	pthread_create(&snd_thread, NULL, send_msg, (void *)&sock);
 	pthread_create(&rcv_thread, NULL, recv_msg, (void *)&sock);
 
@@ -53,7 +54,7 @@ void *send_msg(void *arg)   // send thread main
 	if (msg == NULL)
 		error_handling("malloc error");
 	memset(msg, 0, sizeof(msg_t));
-	
+
 	while(1)
 	{
 		fgets(input, BUF_SIZE, stdin);
@@ -82,7 +83,10 @@ void	*recv_msg(void *arg)			// read thread main
 		if (rd == -1)
 			return (void *)-1;
 		printf("READ MSG!\n");
-		printf("%s\n", buffer);
+		buffer[rd] = '\0';
+		write(1, buffer, strlen(buffer));
+		write(1, "\n", 1);
+		// printf("msg printed!\n");
 	}
 	return NULL;
 }

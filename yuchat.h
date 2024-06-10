@@ -28,7 +28,7 @@
 
 #define BUF_SIZE	512
 #define NAME_SIZE	20
-#define MSG_SIZE	256
+#define MSG_SIZE	128
 #define TIME_SIZE	6
 
 #define BROADCAST	0
