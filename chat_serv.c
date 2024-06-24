@@ -58,10 +58,20 @@ void *handle_clnt(void *arg)
 		perror("read error!\n");
 		return (void *)-1;
 	}
-	printf("Hello, [%s]\n", clnt_name);
 
 	pthread_mutex_lock(&mutx);
+	// name과 같은 사용자가 이미 존재하면, 접근 거부.
+	// 아니라면 접근 허용.
+	if (find_sock(clnt_head, clnt_name) != NULL)
+	{
+		write(clnt_sock, "[SYSTEM] This name is using now\n", 33);
+		free(msg);
+		close(clnt_sock);
+		pthread_mutex_unlock(&mutx);
+		return NULL;
+	}
 	append_node(&clnt_head, clnt_sock, clnt_name);
+	write(clnt_sock, "[SYSTEM] Welcome\n", 17);
 	pthread_mutex_unlock(&mutx);
 
 	msg = (msg_t *)malloc(sizeof(msg));
@@ -80,11 +90,11 @@ void *handle_clnt(void *arg)
 	return NULL;
 }
 
+// 전달받은 msg_t 구조체의 멤버들을 확인하여 해당되는 클라이언트에게 전송
 void send_msg(msg_t *msg, int cur_sock)
 {
-	int i;
-
 	pthread_mutex_lock(&mutx);
+	// 일반 채팅
 	if (msg->type == BROADCAST)
 	{
 		for (clnt_socks_t *ptr = clnt_head; ptr != NULL; ptr = ptr->next)
@@ -94,6 +104,7 @@ void send_msg(msg_t *msg, int cur_sock)
 			write(ptr->sock, msg->message, msg->len);
 		}
 	}
+	// 1:1 채팅
 	if (msg->type == UNICAST)
 	{
 		clnt_socks_t *ptr = find_sock(clnt_head, msg->receiver);
@@ -109,6 +120,7 @@ void send_msg(msg_t *msg, int cur_sock)
 	pthread_mutex_unlock(&mutx);
 }
 
+// 클라이언트로부터 msg_t의 정보를 수신
 int	read_msg(int clnt_sock, msg_t *msg)
 {
 	int rd;

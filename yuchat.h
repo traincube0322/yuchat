@@ -34,6 +34,7 @@
 #define BROADCAST	0
 #define UNICAST 	1
 
+// msg의 정보를 담는 구조체
 typedef struct msg_s
 {
 	int		type;
@@ -42,8 +43,6 @@ typedef struct msg_s
 	char	message[NAME_SIZE + MSG_SIZE + TIME_SIZE + 7];
 }	msg_t;
 
-// functions
 void	error_handling(char *msg);
-
 
 #endif

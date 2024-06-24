@@ -10,4 +10,7 @@
 
 #include "yuchat.h"
 
+int		make_msg(char *input, msg_t *msg, char *name);
+void	remove_newline(char *dest, const char *src);
+
 #endif

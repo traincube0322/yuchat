@@ -2,8 +2,6 @@
 
 void	*send_msg(void *arg);
 void	*recv_msg(void *arg);
-void	make_msg(char *input, msg_t *msg);
-void	remove_newline(char *dest, const char *src);
 
 char name[NAME_SIZE] = "[DEFAULT]";
 
@@ -13,6 +11,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_addr;
 	pthread_t snd_thread, rcv_thread;
 	void *thread_return;
+	char buffer[BUF_SIZE];
 
 	if (argc != 4) {
 		printf("Usage : %s <IP> <port> <name>\n", argv[0]);
@@ -34,6 +33,12 @@ int main(int argc, char *argv[])
 		error_handling("connect() error");
 
 	write(sock, name, NAME_SIZE);
+	int rd;
+	if ((rd = read(sock, buffer, BUF_SIZE)) == 0)
+	{
+		printf("ERROR : Socket is closed\n");
+		return 0;
+	}
 	pthread_create(&snd_thread, NULL, send_msg, (void *)&sock);
 	pthread_create(&rcv_thread, NULL, recv_msg, (void *)&sock);
 
@@ -44,6 +49,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+// 서버에게 msg_t에 정보를 채워 전송
 void *send_msg(void *arg)   // send thread main
 {
 	msg_t 	*msg;
@@ -64,13 +70,14 @@ void *send_msg(void *arg)   // send thread main
 			close(sock);
 			exit(0);
 		}
-		make_msg(input, msg);
-		write(sock, msg, sizeof(msg_t));
+		if (make_msg(input, msg, name) == 0)
+			write(sock, msg, sizeof(msg_t));
 	}
 	free(msg);
 	return NULL;
 }
 
+// 서버로부터 메시지를 수신
 void	*recv_msg(void *arg)			// read thread main
 {
 	int sock = *((int *)arg);
@@ -82,58 +89,11 @@ void	*recv_msg(void *arg)			// read thread main
 		rd = read(sock, buffer, BUF_SIZE);
 		if (rd == -1)
 			return (void *)-1;
-		printf("READ MSG!\n");
+		if (rd == 0)
+			break;
 		buffer[rd] = '\0';
 		write(1, buffer, strlen(buffer));
 		write(1, "\n", 1);
-		// printf("msg printed!\n");
 	}
 	return NULL;
-}
-
-void	make_msg(char *input, msg_t *msg)
-{
-	time_t cur_time;
-	char reciever[NAME_SIZE];
-	char content[BUF_SIZE];
-	char timestamp[TIME_SIZE];
-
-	msg->type = BROADCAST;
-	if (input[0] == '@')
-	{
-		msg->type = UNICAST;
-		input++;
-		char *space = strchr(input, ' ');
-		if (space != NULL)
-		{
-			int name_len = space - input;
-			if (name_len < NAME_SIZE)
-			{
-				strncpy(msg->receiver, input, name_len);
-				msg->receiver[name_len] = '\0';
-			}
-			else
-			{
-				printf("ERROR : Name is too long\n");
-				return;
-			}
-			input += name_len;
-		}
-	}
-	remove_newline(content, input);
-
-	cur_time = time(NULL);
-	strftime(timestamp, sizeof(timestamp), "%H:%M", localtime(&cur_time));
-	sprintf(msg->message, "[%s] %s [%s]", name, content, timestamp);
-	msg->len = strlen(msg->message);
-}
-
-void	remove_newline(char *dest, const char *src)
-{
-	int len = 0;
-
-	while (src[len] != '\0' && src[len] != '\n')
-		len++;
-	strncpy(dest, src, len);
-	dest[len] = '\0';
 }

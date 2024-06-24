@@ -7,6 +7,7 @@
 
 #include "yuchat_serv.h"
 
+// 노드 생성
 clnt_socks_t* create_node(int sock, const char* name)
 {
 	clnt_socks_t *new_node = (clnt_socks_t *)malloc(sizeof(clnt_socks_t));
@@ -14,7 +15,6 @@ clnt_socks_t* create_node(int sock, const char* name)
 		printf("malloc error");
 		return NULL;
 	}
-
 	new_node->sock = sock;
 	strncpy(new_node->name, name, NAME_SIZE - 1);
 	new_node->name[NAME_SIZE - 1] = '\0';
@@ -22,6 +22,7 @@ clnt_socks_t* create_node(int sock, const char* name)
 	return new_node;
 }
 
+// 노드 삭제
 void delete_node(clnt_socks_t **head, int sock)
 {
 	clnt_socks_t *temp = *head;
@@ -46,6 +47,7 @@ void delete_node(clnt_socks_t **head, int sock)
 	free(temp);
 }
 
+// 가장 마지막에 노드 추가
 void append_node(clnt_socks_t **head, int sock, const char *name)
 {
 	clnt_socks_t* new_node = create_node(sock, name);
@@ -66,6 +68,7 @@ void append_node(clnt_socks_t **head, int sock, const char *name)
 	last->next = new_node;
 }
 
+// name인 노드를 찾기
 clnt_socks_t *find_sock(clnt_socks_t *head, const char *name)
 {
 	clnt_socks_t *ptr = head;
@@ -78,16 +81,3 @@ clnt_socks_t *find_sock(clnt_socks_t *head, const char *name)
 	}
 	return NULL;
 }
-
-// clnt_socks_t *find_sock(clnt_socks_t *head, int sock)
-// {
-// 	clnt_socks_t *ptr = head;
-
-// 	while (ptr != NULL)
-// 	{
-// 		if (ptr->sock == sock)
-// 			return ptr;
-// 		ptr = ptr->next;
-// 	}
-// 	return NULL;
-// }
